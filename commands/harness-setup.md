@@ -87,11 +87,69 @@ Save all answers to `.claude/harness-builder/interview.json`.
 
 ---
 
+## Phase 2.5 — Plugin Discovery & Recommendation
+
+Search for plugins and skills that match the detected stack and user preferences.
+
+### Step 1: Web Search (parallel, 3 searches)
+
+Run these WebSearch queries in parallel:
+
+1. `"Claude Code plugin" {framework} {language} 2026 github` — stack-specific plugins
+2. `"Claude Code skills" best {category} 2026` — where category = workflow/testing/security based on interview
+3. `site:github.com claude-code plugin marketplace {language}` — marketplace repos
+
+### Step 2: Known Marketplace Scan
+
+Read `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/plugin-catalog.md` for the pre-vetted plugin catalog. Score each plugin using the formula:
+
+```
+score = (stack_match × 0.4) + (workflow_match × 0.3) + (popularity × 0.1) + (cost_fit × 0.2)
+```
+
+### Step 3: Merge & Deduplicate
+
+Combine web search results with the known catalog:
+- Deduplicate by plugin name
+- Flag web-discovered plugins as "unvetted" (not in catalog)
+- Sort by score descending
+
+### Step 4: Present to User
+
+Present recommendations in 3 tiers using AskUserQuestion (multiSelect: true):
+
+**필수 (자동 선택)**:
+- hookify (모든 프로젝트)
+- LSP plugin (스택에 맞는 것: typescript-lsp, pyright-lsp, etc.)
+
+**추천 (score > 0.7)**:
+- List recommended plugins with brief Korean descriptions
+- Pre-select recommended ones
+
+**선택 / 웹에서 발견**:
+- Lower-scored plugins and web-discovered ones
+- Mark unvetted ones with "(미검증)" label
+
+Let user check/uncheck selections.
+
+### Step 5: Install Selected Plugins
+
+For each selected plugin, note the install command in the output. Do NOT auto-install — instead, list commands the user should run after harness setup:
+
+```bash
+claude plugin marketplace add {marketplace-url}
+claude plugin install {plugin-name}
+```
+
+Save selections to `.claude/harness-builder/plugin-selection.json`.
+
+---
+
 ## Phase 3 — Configuration Generation
 
-Read both `analysis.json` and `interview.json`. Then spawn a `config-generator` agent with this prompt:
+Read `analysis.json`, `interview.json`, and `plugin-selection.json`. Then spawn a `config-generator` agent with this prompt:
 
-> Generate a complete Claude Code harness for this project. Here is the analysis: {analysis.json content}. Here are the interview results: {interview.json content}.
+> Generate a complete Claude Code harness for this project. Here is the analysis: {analysis.json content}. Here are the interview results: {interview.json content}. Here are the selected plugins: {plugin-selection.json content}.
 >
 > Follow your agent instructions for the full generation sequence. Key requirements:
 > 1. Backup existing .claude/ first
@@ -131,6 +189,10 @@ Print a summary in Korean:
   - .claude/agents/ ({N}개 에이전트 프로필)
   - CLAUDE.md (에이전트 라우팅 + 모델 정책)
   - .claude/docs/HARNESS-GUIDE.md (사용 가이드)
+
+🔌 추천 플러그인 설치:
+  {for each selected plugin:}
+  - claude plugin install {plugin-name}
 
 💡 다음 단계:
   - /harness-guide 로 한국어 가이드 확인
