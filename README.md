@@ -2,6 +2,8 @@
 
 Auto-configure a production-grade Claude Code harness for any project.
 
+[한국어](https://github.com/woohyunkim-aicx/harness-builder/blob/main/README-KR.md) 
+
 Analyzes your codebase, interviews you about preferences, and generates optimized skills, agents, hooks, and security rules — tailored to your tech stack and workflow.
 
 ## Quick Start
