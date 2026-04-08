@@ -71,9 +71,11 @@ Create `.claude/settings.json` with deny-list patterns and hooks.
 
 ### Step 3: Generate `settings.local.json`
 
-Create `.claude/settings.local.json` (gitignored, personal preferences).
+Merge into `.claude/settings.local.json` (gitignored, personal preferences).
 
-Include allow-list based on detected package manager and tools:
+If file already exists, read it first and union the allow-list (exact string dedup). Never remove existing entries.
+
+Add allow-list based on detected package manager and tools:
 ```json
 {
   "permissions": {
@@ -327,13 +329,155 @@ Create `.claude/harness-builder/harness-lock.json`:
 }
 ```
 
+## Coexistence & Conflict Prevention
+
+These rules ensure harness-builder works safely alongside existing setups, other plugins, and future additions.
+
+### Naming: Always Namespace
+
+All generated files use the project slug prefix to avoid collisions:
+- **Agents**: `{project-slug}-backend-developer.md` (NOT `backend-developer.md`)
+- **Skills**: `{project-slug}-api-patterns/` (NOT `api-patterns/`)
+- **Scripts**: `{project-slug}-tsc-check.sh` (NOT `tsc-check.sh`)
+
+Before creating ANY file in `.claude/agents/` or `.claude/skills/`, check if a file/directory with the same name already exists:
+- If it exists AND is NOT in harness-lock.json → **skip it** (it's user-created or from another plugin)
+- If it exists AND IS in harness-lock.json → **safe to regenerate** (we own it)
+- Log skipped files in the generation output
+
+### settings.json: Additive-Only Merge
+
+```
+MERGE ALGORITHM:
+1. Read existing settings.json (or start with {})
+2. For permissions.deny:
+   - Collect new patterns from template
+   - For each new pattern, check EXACT string match in existing array
+   - Only append if not already present
+   - NEVER remove existing patterns (user or other plugins added them)
+3. For permissions.allow:
+   - DO NOT TOUCH — this is user-managed territory
+4. For hooks:
+   - See hooks merge algorithm below
+5. For ALL other keys (enabledPlugins, env, additionalDirectories, etc.):
+   - Preserve as-is — NEVER modify or remove
+```
+
+### settings.local.json: Merge, Not Replace
+
+Change strategy from "full" to "merge":
+```
+1. Read existing settings.local.json (or start with {})
+2. For permissions.allow:
+   - Union with new patterns (exact string dedup)
+   - NEVER remove existing allow patterns
+3. For ALL other keys:
+   - Preserve as-is
+```
+
+### hooks.json: Deduplicated Append
+
+```
+MERGE ALGORITHM:
+1. Read existing hooks.json (or start with {"hooks": {}})
+2. For each hook point (PreToolUse, PostToolUse, Stop, etc.):
+   - Read existing entries array
+   - For each NEW entry we want to add:
+     a. Generate a stable ID: hash of (matcher + command) or use description field
+     b. Check if an entry with the same ID already exists
+     c. Only append if not present
+   - NEVER remove existing entries (other plugins or user added them)
+3. Tag harness-builder entries with description prefix:
+   "[harness-builder] Protect database from destructive operations"
+   This makes our entries identifiable for future updates.
+```
+
+### CLAUDE.md: Preserve Everything Outside Markers
+
+```
+SECTION UPDATE ALGORITHM:
+1. Read entire CLAUDE.md content
+2. For each managed section:
+   a. Find EXACT line: "<!-- harness-builder:start:{name} -->"
+   b. Find EXACT line: "<!-- harness-builder:end:{name} -->"
+   c. If BOTH found: replace content BETWEEN markers (exclusive — keep marker lines)
+   d. If markers NOT found: APPEND section at end of file (don't insert in middle)
+   e. If only start found (no end): SKIP and WARN user about broken markers
+3. Everything OUTSIDE markers is NEVER touched
+4. Other plugins' markers (e.g., <!-- plugin-x:section -->) are preserved
+5. User edits INSIDE harness-builder markers WILL be replaced — document this clearly
+```
+
+### Skill Collision Prevention
+
+Before generating each skill:
+1. Check if `.claude/skills/{name}/` exists
+2. Check if any INSTALLED PLUGIN provides a skill with the same name (Glob for the name in `~/.claude/plugins/`)
+3. If collision detected:
+   - Use prefixed name: `{project-slug}-{skill-name}`
+   - Log: "Skill '{name}' already exists (from plugin/user). Generated as '{project-slug}-{name}' to avoid collision."
+
+### Agent Collision Prevention
+
+Before generating each agent:
+1. Check if `.claude/agents/{name}.md` exists
+2. Check if any installed plugin provides an agent with the same name
+3. If collision:
+   - Our agents are ALWAYS prefixed with `{project-slug}-`, so direct collision is unlikely
+   - But check anyway and skip if the exact prefixed name exists and is NOT in our lock file
+
+### Orphan Cleanup on Update
+
+When running via `/harness-update`:
+1. Read `harness-lock.json` for list of previously generated files
+2. Compare with files we would generate NOW (based on current analysis)
+3. If a file was previously managed but is no longer needed:
+   - DO NOT auto-delete — warn the user: "이전에 생성된 {file}이 더 이상 필요하지 않습니다. 삭제할까요?"
+   - Track as `managed: "orphaned"` in lock file
+
+### harness-lock.json: Track Actual Filenames
+
+Use ACTUAL generated filenames, never template placeholders:
+```json
+{
+  "managedFiles": {
+    ".claude/settings.json": { "managed": "merge", "sections": ["permissions.deny"] },
+    ".claude/settings.local.json": { "managed": "merge" },
+    ".claude/hooks/hooks.json": { "managed": "merge", "entryPrefix": "[harness-builder]" },
+    "CLAUDE.md": { "managed": "sections", "markers": ["agent-routing", "model-policy", "automation-tiers", "essential-commands", "references"] },
+    ".claude/skills/voc-tool-api-patterns/SKILL.md": { "managed": "full" },
+    ".claude/agents/voc-tool-backend-developer.md": { "managed": "full" },
+    ".claude/scripts/voc-tool-tsc-check.sh": { "managed": "full" }
+  },
+  "skippedFiles": {
+    ".claude/agents/backend-developer.md": "already exists (user/plugin)",
+    ".claude/skills/db-patterns/": "already exists (ECC plugin)"
+  }
+}
+```
+
+### Plugin Coexistence Notes for CLAUDE.md
+
+Add a note in generated CLAUDE.md (outside managed sections):
+
+```markdown
+<!-- Note: Sections between harness-builder markers are auto-managed.
+     Edit freely OUTSIDE markers. Content INSIDE markers will be
+     replaced on /harness-update. To customize a managed section,
+     copy it outside the markers and delete the original section. -->
+```
+
+---
+
 ## Critical Rules
 
-1. **Never overwrite unmanaged files** — check harness-lock.json first
+1. **Never overwrite unmanaged files** — check harness-lock.json first; if file exists and not in lock, skip
 2. **CLAUDE.md must be under 200 lines** — move details to .claude/docs/ if needed
 3. **Extract real patterns** from the codebase — don't generate generic boilerplate
 4. **All JSON must be valid** — validate before writing
 5. **Use section markers** in CLAUDE.md — `<!-- harness-builder:start:name -->` / `<!-- harness-builder:end:name -->`
 6. **Scripts must be executable** — always `chmod +x`
 7. **No secrets in generated files** — never include API keys, tokens, passwords
-8. **Deep merge, don't replace** — for settings.json and hooks.json with existing content
+8. **Additive merge only** — never remove existing patterns, hooks, or keys from settings/hooks JSON
+9. **Namespace everything** — all generated agents, skills, scripts use `{project-slug}-` prefix
+10. **Tag hook entries** — use `[harness-builder]` prefix in description for identification
