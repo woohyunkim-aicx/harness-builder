@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "woohyunkim-harness-builder",
+  "owner": {
+    "name": "Woohyun Kim",
+    "email": "woohyun.kim@aicx.kr"
+  },
+  "plugins": [
+    {
+      "name": "harness-builder",
+      "source": "./",
+      "description": "Auto-configure a production-grade Claude Code harness for any project",
+      "version": "0.1.0",
+      "category": "workflow",
+      "tags": ["harness", "setup", "automation", "configuration", "agents", "skills", "hooks"]
+    }
+  ]
+}
