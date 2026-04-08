@@ -36,52 +36,47 @@ Wait for the agent to complete. Read the resulting `analysis.json` and summarize
 
 ---
 
-## Phase 2 — User Interview
+## Phase 2 — Deep User Interview
 
-Conduct an adaptive interview using AskUserQuestion. The questions adapt based on Phase 1 results. Ask up to 4 questions at a time (AskUserQuestion limit).
+Conduct an adaptive deep interview using AskUserQuestion. Questions are batched in rounds of 4 (AskUserQuestion limit). The interview adapts based on Phase 1 results and previous answers. Total 15-24 questions across 6 rounds.
 
-### Round 1 (3 questions):
+Read the full question bank at `${CLAUDE_PLUGIN_ROOT}/skills/harness-builder/references/interview-bank.md` for detailed options and branching logic.
 
-**Q1: 프로젝트 정보**
-- Question: "프로젝트를 한 줄로 설명해주세요. 현재 어떤 단계인가요?"
-- Options: "프로토타입 단계", "MVP 개발 중", "프로덕션 운영 중", "유지보수 모드"
+### Round 1: Project Context (4 questions)
+- Q1: 프로젝트 유형 (내부 도구/SaaS/데이터 파이프라인/라이브러리)
+- Q2: 프로젝트 단계 (프로토타입/MVP/프로덕션/유지보수)
+- Q3: 팀 규모 (혼자/소규모/팀/여러 팀)
+- Q4: Claude Code 경험 수준 (처음/기본/커스텀 있음/하네스 경험)
 
-**Q2: 비용 티어** (skip if --cost-tier was passed in $ARGUMENTS)
-- Question: "Claude Code 사용 비용을 어떻게 관리하고 싶으세요?"
-- Options:
-  - "최소 비용 (sonnet only, ~$0.5/hr)" — minimal
-  - "균형잡힌 구성 (opus 설계 + sonnet 실행, ~$2/hr) (추천)" — balanced
-  - "풀 구성 (멀티모델 + 교차검증, ~$5/hr)" — full
+### Round 2: Workflow & Process (4 questions)
+- Q5: 주요 작업 패턴 (복수 선택: 기능 개발/버그 수정/리팩토링/코드 리뷰)
+- Q6: Git 워크플로우 (PR 필수/trunk-based/solo/gitflow)
+- Q7: 테스트 방식 (TDD/구현 후/E2E/최소한)
+- Q8: 코드 리뷰 기대 (자동/수동/PR 시만/불필요)
 
-**Q3: 자동화 수준**
-- Question: "자동화를 얼마나 적극적으로 적용할까요?"
-- Options:
-  - "보수적 (수동 제어 선호)" — conservative
-  - "적당한 자동화 (추천)" — moderate
-  - "적극적 자동화 (가능한 모든 것 자동)" — aggressive
+### Round 3: Cost & Automation (3-4 questions)
+- Q9: 비용 티어 (skip if --cost-tier passed)
+- Q10: 실수 대응 방식 (직접 수정/자동 검사+물어보기/자동 해결)
+- Q11: 병렬 작업 선호도 (하나씩/독립 작업 병렬/적극 병렬)
+- Q12: 컨텍스트 관리 (/clear 자주/자연스럽게/모르겠음)
 
-### Round 2 (3-4 questions, adaptive):
+### Round 4: Security & Safety (conditional, 1-4 questions)
+- Q13: 민감 데이터 종류 (복수 선택: PII/API키/금융/없음)
+- Q14: DB 보안 (if DB detected)
+- Q15: 배포 안전장치 (if deployment detected)
+- Q16: 시크릿 관리 (if Q13 != "없음")
 
-**Q4: 워크플로우**
-- Question: "Git 워크플로우는 어떻게 사용하시나요?"
-- Options: "PR 필수", "trunk-based (직접 push)", "혼자 작업 (solo)", "gitflow"
+### Round 5: Development Experience (3-4 questions)
+- Q17: 소통 언어 (한국어/영어/혼합)
+- Q18: 페인포인트 (복수 선택: 같은 실수 반복/컨텍스트 날아감/빌드 에러/없음)
+- Q19: 커밋 스타일 (Conventional/자유/이슈 번호)
+- Q20: 디자인 시스템 (if frontend detected)
 
-**Q5: 테스트 철학**
-- Question: "테스트는 어떤 방식을 선호하시나요?"
-- Options: "TDD (테스트 먼저)", "구현 후 테스트", "E2E 위주", "최소한만"
-
-**Q6: 보안** (only if database detected)
-- Question: "데이터베이스 보안 정책이 필요한가요?"
-- Options: "읽기전용 스키마 있음 (보호 필요)", "단일 DB (기본 보호)", "보안 불필요"
-
-**Q7: 언어**
-- Question: "CLAUDE.md와 터미널 소통 언어는?"
-- Options: "한국어", "영어", "혼합 (한국어 UI + 영어 코드)"
-
-### Round 3 (conditional, 1-2 questions):
-
-**Q8**: If frontend detected — "디자인 시스템이 있나요?" (있음/없음/만들 예정)
-**Q9**: If existing harness detected — "기존 설정을 어떻게 할까요?" (유지하고 병합/새로 생성/선택적 유지)
+### Round 6: Advanced (conditional, 0-4 questions)
+- Q21: 기존 플러그인 (if experienced user)
+- Q22: 기존 설정 처리 (if existing .claude/)
+- Q23: 커스텀 규칙 (if advanced user)
+- Q24: 팀 문서 필요성 (if team > 1)
 
 Save all answers to `.claude/harness-builder/interview.json`.
 
