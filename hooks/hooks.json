@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-harness.sh"
+          }
+        ],
+        "description": "Check if harness is configured and suggest setup if not"
+      }
+    ]
+  }
+}

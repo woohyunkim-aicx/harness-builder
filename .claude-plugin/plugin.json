@@ -1,0 +1,12 @@
+{
+  "name": "harness-builder",
+  "version": "0.1.0",
+  "description": "Auto-configure a production-grade Claude Code harness for any project — analyzes your codebase, interviews you, and generates optimized skills, agents, hooks, and security rules.",
+  "author": {
+    "name": "Woohyun Kim",
+    "url": "https://github.com/woohyunkim"
+  },
+  "license": "MIT",
+  "keywords": ["harness", "setup", "automation", "configuration", "scaffolding"],
+  "hooks": "./hooks/hooks.json"
+}

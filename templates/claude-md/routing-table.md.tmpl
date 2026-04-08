@@ -1,0 +1,17 @@
+<!-- Template for agent routing table section in CLAUDE.md -->
+
+### Execution Agents (model: sonnet)
+
+| Profile | Agent Type | Use For |
+|---------|-----------|---------|
+{{#EXECUTION_AGENTS}}
+| {{PROJECT_SLUG}}-{{ROLE}} | `{{AGENT_TYPE}}` | {{DESCRIPTION}} |
+{{/EXECUTION_AGENTS}}
+
+### Review Agents
+
+| Agent | Model | Use For |
+|-------|-------|---------|
+{{#REVIEW_AGENTS}}
+| {{NAME}} | {{MODEL}} | {{DESCRIPTION}} |
+{{/REVIEW_AGENTS}}

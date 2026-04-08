@@ -1,0 +1,55 @@
+# {{PROJECT_NAME}} - Project Configuration
+
+## INSTRUCTIONS
+
+1. **Language:** {{LANGUAGE_POLICY}}
+2. **Architecture:** Follow {{FRAMEWORK}} patterns{{FRAMEWORK_DETAILS}}
+3. {{#DATABASE}}**Database:** {{DATABASE_POLICY}}{{/DATABASE}}
+4. **Code Style:** {{PRIMARY_LANGUAGE}} strict mode, immutability, error handling
+
+## {{#TYPESCRIPT}}TypeScript
+
+- After ANY code edit, run `npx tsc --noEmit` before considering the task done.
+{{/TYPESCRIPT}}
+
+## CONTEXT
+
+**Stack:** {{STACK_SUMMARY}}
+**Phase:** {{PROJECT_PHASE}}
+{{#PATH_ALIAS}}**Path Alias:** `@/*` → `./src/*`{{/PATH_ALIAS}}
+
+<!-- harness-builder:start:agent-routing -->
+## Agent Profiles
+
+{{ROUTING_TABLE}}
+<!-- harness-builder:end:agent-routing -->
+
+<!-- harness-builder:start:model-policy -->
+## Model Policy
+
+{{MODEL_POLICY}}
+<!-- harness-builder:end:model-policy -->
+
+<!-- harness-builder:start:automation-tiers -->
+## Automation
+
+{{AUTOMATION_TIERS}}
+<!-- harness-builder:end:automation-tiers -->
+
+<!-- harness-builder:start:essential-commands -->
+## Essential Commands
+
+```bash
+{{COMMANDS}}
+```
+<!-- harness-builder:end:essential-commands -->
+
+<!-- harness-builder:start:references -->
+## References
+
+{{REFERENCES}}
+<!-- harness-builder:end:references -->
+
+---
+
+**This file loads on every prompt. Keep it concise.**
